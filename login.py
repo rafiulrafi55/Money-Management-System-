@@ -1,10 +1,11 @@
-import json
+
 import tkinter as tk
 from tkinter import messagebox
 import logging
 import os
 import subprocess
 from security_utils import verify_password, decrypt_json, encrypt_json
+import sys
 
 log_dir = os.path.join(os.getenv("APPDATA"), "Money-Management-System", "logs")
 os.makedirs(log_dir, exist_ok=True)
@@ -22,8 +23,12 @@ folder_name = "Money-Management-System"
 folder_path = os.path.join(appdata_path, folder_name)
 os.makedirs(folder_path, exist_ok=True)
 
+
+
 users_json_path = os.path.join(folder_path, "users.json")
 current_user_json_path = os.path.join(folder_path, "current_user.json")
+
+
 
 def login():
     logging.info("login module started")
@@ -54,9 +59,9 @@ def login():
 
                 logging.info(f"user {user_id} logged in successfully")
 
-                path = os.path.join(folder_path, "Core.py")
+
                 root.destroy()
-                subprocess.call(["python", path])
+                subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "core.py")])
                 return
             else:
                 messagebox.showwarning("Error", "Incorrect password.")
@@ -79,15 +84,13 @@ def post_login(username):
 
 def signup_clicked(event):
     logging.info("signup clicked")
-    path = os.path.join(folder_path, "signup.py")
     root.destroy()
-    subprocess.call(["python", path])
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "signup.py")])
 
 def forgot_password_clicked(event):
     logging.info("forgot password clicked")
-    path = os.path.join(folder_path, "Forgot_Password.py")
     root.destroy()
-    subprocess.call(["python", path])
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "Forgot_Password.py")])
 
 
 root = tk.Tk()

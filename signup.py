@@ -1,13 +1,11 @@
 import tkinter as tk
-import json
-from tkinter import messagebox
 import os
 import logging
 import subprocess
 from security_utils import hash_password, encrypt_json, decrypt_json
 from tkinter import filedialog, messagebox
-import shutil
 from shutil import copyfile
+import sys
 
 
 appdata_path = os.getenv("APPDATA")
@@ -17,6 +15,7 @@ os.makedirs(folder_path, exist_ok=True)
 
 
 users_file_path = os.path.join(folder_path, "users.json")
+current_user_json_path = os.path.join(folder_path, "current_user.json")
 
 
 log_dir = os.path.join(folder_path, "logs")
@@ -41,18 +40,18 @@ def select_profile_picture(button):
         filetypes=[("Image Files", "*.png *.jpg *.jpeg *.bmp")]
     )
     if file_path:
-        # Optional: size limit 2 MB
+
         if os.path.getsize(file_path) > 2 * 1024 * 1024:
             messagebox.showerror("Error", "Image size must be under 2 MB.")
             return
 
-        # Save a copy in AppData
+
         appdata_path = os.getenv("APPDATA")
         dest_path = os.path.join(appdata_path, "Money-Management-System", f"{username_entry.get()}_pic.png")
         copyfile(file_path, dest_path)
         profile_pic_path = dest_path
 
-        # Update button to show selection
+
         button.config(text="Picture Selected", bg="green")
 
 
@@ -145,11 +144,23 @@ def begin_signup():
     if not saving_data():
         return
     clear_entries()
+    username = username_entry.get()
+    login_data = {
+        "username": username
+    }
+
+    with open(current_user_json_path, "wb") as file:
+        file.write(encrypt_json(login_data))
+        logging.info("encrypted current_user.json saved")
+    root.destroy()
+
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "Core.py")])
+
 
 def signin_clicked(event):
-    path = os.path.join(folder_path, "login.py")
+
     root.destroy()
-    subprocess.run(["python", path])
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "login.py")])
 
 
 root = tk.Tk()

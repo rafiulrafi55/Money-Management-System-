@@ -6,7 +6,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import subprocess
 import os
-from PIL import Image, ImageTk
+import sys
+
 
 from security_utils import decrypt_json, encrypt_json, hash_password
 
@@ -54,8 +55,8 @@ except FileNotFoundError:
     messagebox.showerror("Error", "No current user found. Please login first.")
     CURRENT_USERNAME = ""
     CURRENT_PASSWORD_HASH = ""
-    path = os.path.join(folder_path, "login.py")
-    subprocess.run(["python", path])
+
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "login.py")])
 
 
 users_file = os.path.join(folder_path, "users.json")
@@ -118,9 +119,9 @@ def logout():
             logging.info("current_user.json deleted successfully on logout")
         except Exception as e:
             logging.error(f"Failed to delete current_user.json: {e}")
-    login_path = os.path.join(folder_path, "login.py")
+
     root.destroy()
-    subprocess.run(["python", login_path])
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "login.py")])
 
 
 def add_recents(text):
@@ -132,7 +133,7 @@ def get_recents():
 
 def init_graph(parent):
     global fig, ax, canvas
-    fig = Figure(figsize=(4, 3), dpi=80)
+    fig = Figure(figsize=(3, 2), dpi=80)
     ax = fig.add_subplot(111)
     ax.set_title("Transaction History")
     ax.set_xlabel("Transaction")
@@ -293,7 +294,7 @@ def on_closing():
 
 root = tk.Tk()
 root.title("Money Management System")
-root.geometry("350x780")
+root.geometry("350x700")
 root.tk_setPalette(background='white')
 
 top_frame = tk.Frame(root, bg="white", width=350, height=60)  # full window width

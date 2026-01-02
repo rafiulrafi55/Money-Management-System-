@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 from security_utils import decrypt_json
+import sys
 
 appdata_path = os.getenv("APPDATA")
 folder_name = "Money-Management-System"
@@ -26,15 +27,14 @@ logging.info("Forgot Password application started")
 
 def login():
     logging.info("Login button clicked")
-    path = os.path.join(folder_path, "login.py")
+
     root.destroy()
-    subprocess.run(["python", path])
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "login.py")])
 
 def signup():
     logging.info("Sign Up button clicked")
-    path = os.path.join(folder_path, "signup.py")
     root.destroy()
-    subprocess.run(["python", path])
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(sys.argv[0]), "signup.py")])
 
 def authenticate():
     logging.info("Password recovery started")

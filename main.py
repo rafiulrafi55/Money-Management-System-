@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os
 import subprocess
 import sys
@@ -33,3 +34,29 @@ if os.path.exists(CURRENT_USER_FILE):
     subprocess.Popen([sys.executable, CORE_APP])
 else:
     subprocess.Popen([sys.executable, LOGIN_APP])
+=======
+import signup
+import signin
+
+is_signed_in = False
+
+def main():
+    if is_signed_in == False:
+        launch_signin()
+    else:
+        launch_signup()
+
+
+def launch_signup():
+    signup.signup_ui()
+
+def launch_signin():
+    signin.signin_ui()
+
+def set_signedin(bool):
+    is_signed_in = bool
+
+
+if __name__ == "__main__":
+    main()
+>>>>>>> fbfe2d0 (redesigned_ui)

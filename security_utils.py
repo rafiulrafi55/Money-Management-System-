@@ -9,7 +9,11 @@ def hash_password(password: str) -> str:
 def verify_password(input_password: str, stored_hash: str) -> bool:
     return hashlib.sha256(input_password.encode()).hexdigest() == stored_hash
 
+<<<<<<< HEAD
 KEY_FILE = os.path.join(os.getenv("APPDATA"), "Money-Management-System", "secret.key")
+=======
+KEY_FILE = os.path.join(os.getenv("APPDATA"), "Monefy", "secret.key")
+>>>>>>> fbfe2d0 (redesigned_ui)
 
 def load_key():
     folder = os.path.dirname(KEY_FILE)

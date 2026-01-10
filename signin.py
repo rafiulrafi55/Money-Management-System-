@@ -1,0 +1,263 @@
+import tkinter as tk
+from tkinter import font, messagebox
+import main
+import os
+from security_utils import decrypt_json,verify_password
+import json
+
+def signin_ui():
+
+    def check_entries():
+        if username.get() == "" or password.get() == "":
+            messagebox.showerror("Error","Entries cannot be empty")
+            return False
+        else:
+            return True
+
+    def check_credentials(username_input, password_input):
+        appdata_path = os.getenv("APPDATA")
+        folder_name = "Monefy"
+        folder_path = os.path.join(appdata_path, folder_name)
+        users_file_path = os.path.join(folder_path, "users.json")
+
+        if not os.path.exists(users_file_path):
+            messagebox.showerror("Error", "No users registered yet.")
+            return
+
+        try:
+            with open(users_file_path, "rb") as file:
+                data = decrypt_json(file.read())
+        except Exception:
+            messagebox.showerror("Error", "Failed to read user data.")
+            return
+
+        user_data = data.get(username_input)
+        if user_data:
+            if verify_password(password_input, user_data["password"]):
+                messagebox.showinfo("Success", "Login Successful")
+                login_data = {
+                    "username": username_input
+                }
+                currentuser_path = os.path.join(folder_path, "current_user.json")
+                with open(currentuser_path, "w") as file:
+                    json.dump(login_data, file)
+
+            else:
+                messagebox.showerror("Error", "Wrong Password")
+        else:
+            messagebox.showerror("Error", "User not found")
+
+    def signin_clicked():
+        if not check_entries():
+            return
+        check_credentials(username.get(),password.get())
+
+
+    root = tk.Tk()
+    root.geometry("900x500")
+    root.configure(bg="#F4F6F8")
+    root.resizable(False, False)
+    root.title("Login_UI")
+
+    # ---------------- Fonts ----------------
+    title_font = font.Font(family="Segoe UI", size=24, weight="bold")
+    feature_title_font = font.Font(family="Segoe UI", size=16, weight="bold")
+    feature_font = font.Font(family="Segoe UI", size=10)
+    label_font = font.Font(family="Segoe UI", size=10)
+    entry_font = font.Font(family="Segoe UI", size=10)
+    btn_font = font.Font(family="Segoe UI", size=11, weight="bold")
+    link_font = font.Font(family="Segoe UI", size=9, underline=True)
+
+    # ================== APP TITLE ==================
+    tk.Label(
+        root,
+        text="Monefy",
+        bg="#F4F6F8",
+        fg="#111111",
+        font=title_font
+    ).place(relx=0.5, y=3, anchor="n")
+
+    # ================== FEATURES FRAME (LEFT) ==================
+    features_frame = tk.Frame(
+        root,
+        bg="#F8F9FB",
+        width=300,
+        height=300,
+        highlightbackground="#E0E0E0",
+        highlightthickness=1
+    )
+    features_frame.place(x=40, y=80)
+    features_frame.pack_propagate(False)
+
+    # Features title
+    tk.Label(
+        features_frame,
+        text="Why Monefy?",
+        bg="#F8F9FB",
+        fg="#111111",
+        font=feature_title_font
+    ).place(x=20, y=20)
+
+    # Feature list
+    features = [
+        "• Track your income & expenses",
+        "• Simple and clean interface",
+        "• Secure data storage",
+        "• Quick monthly insights",
+        "• Works offline"
+    ]
+
+    y_pos = 70
+    for feature in features:
+        tk.Label(
+            features_frame,
+            text=feature,
+            bg="#F8F9FB",
+            fg="#333333",
+            font=feature_font,
+            anchor="w"
+        ).place(x=20, y=y_pos)
+        y_pos += 35
+
+    # ================== LOGIN CARD (RIGHT) ==================
+    card = tk.Frame(
+        root,
+        bg="#F6F6F6",
+        width=320,
+        height=330,
+        highlightbackground="#DDDDDD",
+        highlightthickness=1
+    )
+    card.place(x=520, y=80)
+    card.pack_propagate(False)
+
+    # Username
+    tk.Label(
+        card,
+        text="Username",
+        bg="#F6F6F6",
+        fg="#111111",
+        font=label_font
+    ).place(x=20, y=25)
+
+    username = tk.Entry(
+        card,
+        font=entry_font,
+        bd=0,
+        highlightthickness=1,
+        highlightbackground="#DDDDDD"
+    )
+    username.place(x=20, y=50, width=280, height=35)
+
+    # Password
+    tk.Label(
+        card,
+        text="Password",
+        bg="#F6F6F6",
+        fg="#111111",
+        font=label_font
+    ).place(x=20, y=100)
+
+    password = tk.Entry(
+        card,
+        font=entry_font,
+        bd=0,
+        show="*",
+        highlightthickness=1,
+        highlightbackground="#DDDDDD"
+    )
+    password.place(x=20, y=125, width=280, height=35)
+
+    # Sign In Button
+    sign_in = tk.Button(
+        card,
+        text="Sign In",
+        bg="#6C4AF2",
+        fg="white",
+        font=btn_font,
+        bd=0,
+        activebackground="#5A3EE6",
+        cursor="hand2",
+        command=signin_clicked
+    )
+    sign_in.place(x=20, y=185, width=280, height=40)
+
+    # Forgot Password
+    tk.Label(
+        card,
+        text="Forgot password?",
+        bg="#F6F6F6",
+        fg="#111111",
+        font=link_font,
+        cursor="hand2"
+    ).place(x=20, y=245)
+
+    # ================== 3D SIGN UP BUTTON ==================
+    def create_3d_signup_button(parent, x, y, text, command=None):
+        width, height = 120, 42
+        depth = 4
+
+        canvas = tk.Canvas(
+            parent,
+            width=width + depth,
+            height=height + depth,
+            bg="white",
+            highlightthickness=0
+        )
+        canvas.place(x=x, y=y)
+
+        canvas.create_rectangle(
+            depth, depth,
+            width + depth, height + depth,
+            fill="#C62828",
+            outline=""
+        )
+
+        button = canvas.create_rectangle(
+            0, 0,
+            width, height,
+            fill="#FF3B3B",
+            outline=""
+        )
+
+        text_item = canvas.create_text(
+            width // 2,
+            height // 2,
+            text=text,
+            fill="white",
+            font=btn_font
+        )
+
+        def on_press(event):
+            canvas.move(button, depth, depth)
+            canvas.move(text_item, depth, depth)
+
+        def on_release(event):
+            canvas.move(button, -depth, -depth)
+            canvas.move(text_item, -depth, -depth)
+            if command:
+                command()
+
+        for item in (button, text_item):
+            canvas.tag_bind(item, "<ButtonPress-1>", on_press)
+            canvas.tag_bind(item, "<ButtonRelease-1>", on_release)
+
+        canvas.config(cursor="hand2")
+
+    def signup_clicked():
+        root.destroy()
+        main.launch_signup()
+
+    # Sign Up Button
+    create_3d_signup_button(
+        root,
+        x=40,
+        y=420,
+        text="Sign Up",
+        command=signup_clicked
+    )
+
+    # ---------------- Run ----------------
+    root.mainloop()
+
+# ---------------- Window ----------------

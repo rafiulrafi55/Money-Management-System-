@@ -27,90 +27,74 @@ def signup_ui():
         entries.append(confirm_pw.get())
         entries.append(username.get())
 
-
     def check_entries():
-        create_entry()
-        if "" in entries:
-            tk.messagebox.showerror("Error", "Please fill in all fields.")
-            entries.clear()
+        if not all([first_name.get(), last_name.get(), email.get(), username.get(), password.get(), confirm_pw.get()]):
+            messagebox.showerror("Error", "Please fill in all fields.")
             return False
         if password.get() != confirm_pw.get():
-            tk.messagebox.showerror("Error", "Passwords do not match.")
-            entries.clear()
+            messagebox.showerror("Error", "Passwords do not match.")
             return False
         return True
 
     def check_duplicate(username_input):
-
-        if not os.path.exists(users_file_path):
-            return False
-
-        try:
-            with open(users_file_path, "rb") as file:
-                data = decrypt_json(file.read())
-        except Exception:
-            data = {}
-
-        if username_input in data:
-            messagebox.showerror("Error", "Username already exists. Choose another one.")
-            del data
-            return False
-        return True
-
-    def saving_data():
-
-        password_hash = hash_password(password.get())
-
+        data = {}
         if os.path.exists(users_file_path):
             try:
                 with open(users_file_path, "rb") as file:
                     data = decrypt_json(file.read())
-            except Exception as e:
-
+            except Exception:
+                messagebox.showwarning("Warning", "Users file is empty or corrupted. Starting fresh.")
                 data = {}
 
-        else:
-            data = {}
-
-        user_id = f"{username.get()}"
-        data[user_id] = {
-              "firstname": first_name.get(),
-              "lastname": last_name.get(),
-             "email": email.get(),
-             "username": username.get(),
-             "password": password_hash
-         }
-        with open(users_file_path, "wb") as file:
-            file.write(encrypt_json(data))
-
-        messagebox.showinfo(
-            "Success",
-            "Registration Successful"
-        )
+        if username_input in data:
+            messagebox.showerror("Error", "Username already exists. Choose another one.")
+            return False
         return True
 
+    def saving_data():
+        password_hash = hash_password(password.get())
+        data = {}
+        if os.path.exists(users_file_path):
+            try:
+                with open(users_file_path, "rb") as file:
+                    data = decrypt_json(file.read())
+            except Exception:
+                data = {}
 
+        data[username.get()] = {
+            "firstname": first_name.get(),
+            "lastname": last_name.get(),
+            "email": email.get(),
+            "username": username.get(),
+            "password": password_hash
+        }
 
+        try:
+            with open(users_file_path, "wb") as file:
+                file.write(encrypt_json(data))
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save user: {e}")
+            return False
+
+        return True
 
     def signup():
         if not check_entries():
             return
         if not check_duplicate(username.get()):
             return
-        if not saving_data():
+        try:
+            saving_data()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save user: {e}")
             return
         root.destroy()
-        main.launch_signin()
-
-
-
-
-
-
+        # launch signin window
+        messagebox.showinfo("Success", "Signup successful! Launch signin window here.")
 
     root = tk.Tk()
     root.title("Create an account")
-    root.geometry("600x450")
+    root.geometry("600x500")
     root.configure(bg="white")
 
     # Styling
@@ -209,3 +193,5 @@ def signup_ui():
     root.mainloop()
 
 
+if __name__ == "__main__":
+    signup_ui()

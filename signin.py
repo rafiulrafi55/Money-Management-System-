@@ -34,13 +34,15 @@ def signin_ui():
         user_data = data.get(username_input)
         if user_data:
             if verify_password(password_input, user_data["password"]):
-                messagebox.showinfo("Success", "Login Successful")
+
                 login_data = {
                     "username": username_input
                 }
                 currentuser_path = os.path.join(folder_path, "current_user.json")
                 with open(currentuser_path, "w") as file:
                     json.dump(login_data, file)
+                root.destroy()
+                main.launch_dashboard()
 
             else:
                 messagebox.showerror("Error", "Wrong Password")
@@ -102,9 +104,9 @@ def signin_ui():
     features = [
         "• Track your income & expenses",
         "• Simple and clean interface",
-        "• Secure data storage",
-        "• Quick monthly insights",
-        "• Works offline"
+        "• Secure user datas",
+        "• Open source",
+        "• Full offline"
     ]
 
     y_pos = 70

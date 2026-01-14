@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import font
 from ctypes import windll
@@ -36,6 +35,7 @@ users_path = os.path.join(folder_path, "users.json")
 user_data_file = os.path.join(folder_path, "user_data.json")
 
 def dashboard_ui():
+
 
 
 
@@ -129,6 +129,9 @@ def dashboard_ui():
         launch_signin()
         return
 
+    with open(users_path, "rb") as file:
+        users_data = decrypt_json(file.read())
+
 
     with open(users_path, "rb") as file:
         data = decrypt_json(file.read())
@@ -146,6 +149,8 @@ def dashboard_ui():
     transactions_value = 0
     transactions_change_value = 0.00
     recents = {}
+    remaining_budget = None
+
 
 
     try:
@@ -158,6 +163,9 @@ def dashboard_ui():
                 transactions_change_value = float(user_data.get("transactions_change_value", 0))
                 recents = user_data.get("recents", {})
                 budget_value = user_data.get("budget_value", None)
+                remaining_budget = user_data.get("remaining_budget", None)
+
+
 
 
     except FileNotFoundError:
@@ -175,72 +183,61 @@ def dashboard_ui():
             "transactions_value": transactions,
             "transactions_change_value": transactions_change,
             "recents": recents_data,
-            "budget_value": budget_value
+            "budget_value": budget_value,
+            "remaining_budget" : remaining_budget
         }
 
         with open(user_data_file, "w") as f:
             json.dump(data, f, indent=4)
         render_recent_transactions()
 
-    flash_after_id = None
-    flash_active = True
+
 
     def on_closing():
-        nonlocal flash_active, flash_after_id, first_login
-        flash_active = False
-        if flash_after_id is not None:
-            root.after_cancel(flash_after_id)
+        nonlocal first_login
+
         saving_data(balance_value, transactions_value, transactions_change_value, recents)
         plt.close('all')
         root.destroy()
 
     def logout():
         os.remove(current_user_path)
-        nonlocal flash_active, flash_after_id
-        flash_active = False
-        if flash_after_id is not None:
-            root.after_cancel(flash_after_id)
         saving_data(balance_value, transactions_value, transactions_change_value, recents)
         plt.close('all')
         root.destroy()
         main.launch_signin()
 
-    def get_remaining_budget():
-        if budget_value is None:
-            return "Budget not set"
-        total_spent = sum(-txn["amount"] for txn in recents.values() if txn["amount"] < 0)
-        remaining = budget_value - total_spent
-        return f"Remaining Budget {remaining:,.2f}  BDT"
+    def update_remaining_budget(amount, is_add=False):
+        nonlocal remaining_budget
+        if remaining_budget is None:
+            return  # no budget set yet
+        if not is_add:
+            remaining_budget -= amount  # subtract expense
+        else:
+            remaining_budget += amount  # optional if you want income to restore budget
+        remaining_var.set(get_remaining_budget())
+        check_budget_warning()
 
-    def flash_warning():
-        nonlocal flash_after_id
-        if not flash_active:
-            return
-        if budget_warning_var.get():
-            current_color = warning_label.cget("fg")
-            new_color = "#FEE2E2" if current_color == "#EE2D24" else "#EE2D24"
-            warning_label.config(fg=new_color)
-            flash_after_id = root.after(1000, flash_warning)
+    def return_remaining_budget():
+        return remaining_budget
 
-    def update_remaining_budget():
-        nonlocal budget_value, recents
-
-        if budget_value is None:
-            remaining_var.set("Budget not set")
-            budget_warning_var.set("")
-            return
-
-        total_spent = sum(-txn["amount"] for txn in recents.values() if txn["amount"] < 0)
-        remaining = budget_value - total_spent
-        remaining_var.set(f"Remaining Budget {remaining:,.2f} BDT")
-
-        warning_limit = getattr(root, "budget_warning_limit", 500)
-
-        if remaining < warning_limit:
-            budget_warning_var.set("⚠ Low budget remaining!")
-            flash_warning()
+    def check_budget_warning():
+        nonlocal remaining_budget, budget_warning_var
+        threshold = getattr(root, "budget_warning_limit", 500)  # default 500 BDT
+        if remaining_budget is not None and remaining_budget <= threshold:
+            budget_warning_var.set(f"⚠ Remaining budget is low!")
         else:
             budget_warning_var.set("")
+
+    def get_remaining_budget():
+        nonlocal remaining_budget
+        if remaining_budget is None:
+            return "Budget not set"
+        else:
+            return f"Remaining budget {remaining_budget} BDT"
+
+
+
 
     def center_popup(popup, width, height):
         popup.update_idletasks()
@@ -324,6 +321,10 @@ def dashboard_ui():
     center_window(root, root_width, root_height)
     root.configure(bg="#F3F4F6")
     root.resizable(False, False)
+    if username in users_data:
+        root.budget_warning_limit = users_data[username].get("budget_warning_limit", 500)
+    else:
+        root.budget_warning_limit = 500
 
 
 
@@ -594,7 +595,7 @@ def dashboard_ui():
         budget_entry.grid(row=1, column=0, sticky="ew", pady=(0,20))
 
         def submit_budget():
-            nonlocal budget_value, recents
+            nonlocal budget_value, recents, remaining_budget
             try:
                 amount = float(budget_entry.get())
             except ValueError:
@@ -605,9 +606,11 @@ def dashboard_ui():
                 return
 
             budget_value = amount
-            recents = {k: v for k, v in recents.items() if v["amount"] >= 0}
-            update_remaining_budget()
+            remaining_budget = amount
+
             saving_data(balance_value, transactions_value, transactions_change_value, recents)
+            remaining_var.set(get_remaining_budget())
+            check_budget_warning()
 
             popup.destroy()
 
@@ -660,18 +663,14 @@ def dashboard_ui():
                 return
 
             if not is_add:
-                if amount>balance_value:
-                    messagebox.showerror("Error","Not enough balance")
-                    return
-                if budget_value is not None:
-                    total_spent = sum(-txn["amount"] for txn in recents.values() if txn["amount"]<0)
-                    new_total_spent = total_spent+amount
-                    if new_total_spent>budget_value:
-                        confirm = messagebox.askyesno("Confirm Overspend",f"This will exceed your budget by {new_total_spent-budget_value:,.2f} BDT. Proceed?")
-                        if not confirm:
-                            return
+                if amount > return_remaining_budget() and return_remaining_budget() > 0:
+                    confim = messagebox.askyesno("Confirmation", "You are going out of your budget. Are you sure?")
+                    if not confim:
+                        return
                 balance_value -= amount
                 transactions_change_value -= amount
+                update_remaining_budget(amount, is_add=False)
+
             else:
                 balance_value += amount
                 transactions_change_value += amount
@@ -693,7 +692,7 @@ def dashboard_ui():
             saving_data(balance_value, transactions_value, transactions_change_value, recents)
             render_recent_transactions()
             render_top_spend()
-            update_remaining_budget()
+
             render_analytics()
 
             popup.destroy()
@@ -808,7 +807,9 @@ def dashboard_ui():
             global first_name, last_name, email
             first_name, last_name, email = f, l, e
             root.budget_warning_limit = new_warning
-            update_remaining_budget()
+            remaining_var.set(get_remaining_budget())
+            check_budget_warning()
+
 
             messagebox.showinfo("Success", "Settings updated successfully!")
             popup.destroy()
@@ -858,8 +859,9 @@ def dashboard_ui():
     render_top_spend()
 
     root.protocol("WM_DELETE_WINDOW", on_closing)
-    update_remaining_budget()
+
     render_analytics()
+    check_budget_warning()
 
     first_login = True
 
@@ -875,6 +877,7 @@ def dashboard_ui():
         users_data[username]["first_login"] = False
         with open(users_path, "wb") as file:
             file.write(encrypt_json(users_data))
+
 
 
 

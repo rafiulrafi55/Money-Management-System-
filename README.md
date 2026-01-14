@@ -115,22 +115,6 @@ Monefy is a **desktop-based money management system** built using **Python and T
 - Delete transactions
 - Quick add transaction option
 
----
-
-## 🖼 Screenshots
-
-
-### Login Screen
-![Login](Screenshots/Login.png)
-
-### Dashboard
-![Dashboard](Screenshots/Dashboard.png)
-
-### Add Transaction
-![Add Transaction](Screenshots/Add_money.png)
-
-### Transactions
-![Transaction History](Screenshots/Transaction_history.png)
 
 ---
 
@@ -241,3 +225,21 @@ You can add yourself to this list if you fork or contribute.
 This project is licensed under the **GNU General Public License v3.0 (GPLv3)**.  
 See the full license here: [LICENSE](LICENSE)
 
+
+
+---
+
+## 🖼 Screenshots
+
+
+### Login Screen
+![Login](Screenshots/Login.png)
+
+### Dashboard
+![Dashboard](Screenshots/Dashboard.png)
+
+### Add Transaction
+![Add Transaction](Screenshots/Add_money.png)
+
+### Transactions
+![Transaction History](Screenshots/Transaction_history.png)

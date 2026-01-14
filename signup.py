@@ -1,12 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
-
-
 import main
 import os
 from tkinter import messagebox
 from security_utils import hash_password,encrypt_json,decrypt_json
-
 appdata_path = os.getenv("APPDATA")
 folder_name = "Monefy"
 folder_path = os.path.join(appdata_path, folder_name)
@@ -88,26 +85,38 @@ def signup_ui():
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save user: {e}")
             return
+        messagebox.showinfo("Success","Account created successfully")
         root.destroy()
-        # launch signin window
-        messagebox.showinfo("Success", "Signup successful! Launch signin window here.")
+        main.launch_signin()
+
+    def center_window(window, width, height):
+        window.update_idletasks()
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+        window.geometry(f"{width}x{height}+{x}+{y}")
 
     root = tk.Tk()
     root.title("Create an account")
-    root.geometry("600x500")
+    window_width = 600
+    window_height = 500
+    center_window(root, window_width, window_height)
+
     root.configure(bg="white")
 
-    # Styling
+
+
     style = ttk.Style()
     style.configure("TLabel", background="white", foreground="#333", font=("Arial", 10))
     style.configure("Header.TLabel", font=("Arial", 16, "bold"))
     style.configure("Link.TLabel", foreground="blue", font=("Arial", 10, "underline"))
 
-    # Main Container
+
     main_frame = tk.Frame(root, bg="white", padx=40, pady=30)
     main_frame.pack(fill="both", expand=True)
 
-    # Header Section
+
     header_label = ttk.Label(main_frame, text="Create an account", style="Header.TLabel")
     header_label.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 5))
 
@@ -166,10 +175,10 @@ def signup_ui():
     submit_btn = tk.Button(
         main_frame,
         text="Create account",
-        bg="#66BB6A",  # green
+        bg="#66BB6A",
         fg="white",
         font=("Arial", 12, "bold"),
-        bd=0,  # no border
+        bd=0,
         padx=20,
         pady=10,
         cursor="hand2",

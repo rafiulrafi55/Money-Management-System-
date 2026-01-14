@@ -2,10 +2,90 @@ import tkinter as tk
 from tkinter import font, messagebox
 import main
 import os
-from security_utils import decrypt_json,verify_password
+from security_utils import decrypt_json,verify_password,encrypt_json,hash_password
 import json
 
+
 def signin_ui():
+    def forgot_password_ui():
+        fp_window = tk.Toplevel(root)
+        fp_window.title("Reset Password")
+        fp_window.geometry("350x360")
+        fp_window.configure(bg="#F4F6F8")
+        fp_window.resizable(False, False)
+        win_width = 350
+        win_height = 360
+        screen_width = fp_window.winfo_screenwidth()
+        screen_height = fp_window.winfo_screenheight()
+        x = (screen_width // 2) - (win_width // 2)
+        y = (screen_height // 2) - (win_height // 2)
+        fp_window.geometry(f"{win_width}x{win_height}+{x}+{y}")
+
+
+        tk.Label(fp_window, text="Username:", bg="#F4F6F8").place(x=20, y=20)
+        fp_username = tk.Entry(fp_window)
+        fp_username.place(x=20, y=45, width=300, height=30)
+
+        tk.Label(fp_window, text="Email:", bg="#F4F6F8").place(x=20, y=80)
+        fp_email = tk.Entry(fp_window)
+        fp_email.place(x=20, y=105, width=300, height=30)
+
+        tk.Label(fp_window, text="New Password:", bg="#F4F6F8").place(x=20, y=140)
+        fp_new_pass = tk.Entry(fp_window, show="*")
+        fp_new_pass.place(x=20, y=165, width=300, height=30)
+
+        tk.Label(fp_window, text="Confirm Password:", bg="#F4F6F8").place(x=20, y=200)
+        fp_confirm_pass = tk.Entry(fp_window, show="*")
+        fp_confirm_pass.place(x=20, y=225, width=300, height=30)
+
+        def reset_password():
+            uname = fp_username.get()
+            email = fp_email.get()
+            new_pass = fp_new_pass.get()
+            confirm_pass = fp_confirm_pass.get()
+
+            if not uname or not email or not new_pass or not confirm_pass:
+                messagebox.showerror("Error", "All fields are required")
+                return
+
+            if new_pass != confirm_pass:
+                messagebox.showerror("Error", "Passwords do not match")
+                return
+
+            appdata_path = os.getenv("APPDATA")
+            folder_name = "Monefy"
+            folder_path = os.path.join(appdata_path, folder_name)
+            users_file_path = os.path.join(folder_path, "users.json")
+
+            if not os.path.exists(users_file_path):
+                messagebox.showerror("Error", "No users registered yet.")
+                return
+
+            try:
+                with open(users_file_path, "rb") as file:
+                    data = decrypt_json(file.read())
+            except Exception:
+                messagebox.showerror("Error", "Failed to read user data.")
+                return
+
+            user_data = data.get(uname)
+            if user_data and user_data.get("email") == email:
+                hashed_password = hash_password(new_pass)
+                data[uname]["password"] = hashed_password
+
+                try:
+                    with open(users_file_path, "wb") as file:
+                        file.write(encrypt_json(data))
+                    messagebox.showinfo("Success", "Password reset successfully!")
+                    fp_window.destroy()
+                except Exception:
+                    messagebox.showerror("Error", "Failed to save new password")
+            else:
+                messagebox.showerror("Error", "Username and email do not match")
+                fp_window.destroy()
+                forgot_password_ui()
+
+        tk.Button(fp_window, text="Reset Password", bg="#6C4AF2", fg="white", command=reset_password).place(x=20, y=280, width=300, height=40)
 
     def check_entries():
         if username.get() == "" or password.get() == "":
@@ -59,9 +139,27 @@ def signin_ui():
     root.geometry("900x500")
     root.configure(bg="#F4F6F8")
     root.resizable(False, False)
-    root.title("Login_UI")
+    root.title("Login")
 
-    # ---------------- Fonts ----------------
+    win_width = 900
+    win_height = 500
+
+
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+
+    x = (screen_width // 2) - (win_width // 2)
+    y = (screen_height // 2) - (win_height // 2)
+
+
+    root.geometry(f"{win_width}x{win_height}+{x}+{y}")
+
+    root.lift()
+    root.attributes('-topmost', True)
+    root.after(0, lambda: root.attributes('-topmost', False))
+
+
     title_font = font.Font(family="Segoe UI", size=24, weight="bold")
     feature_title_font = font.Font(family="Segoe UI", size=16, weight="bold")
     feature_font = font.Font(family="Segoe UI", size=10)
@@ -70,7 +168,6 @@ def signin_ui():
     btn_font = font.Font(family="Segoe UI", size=11, weight="bold")
     link_font = font.Font(family="Segoe UI", size=9, underline=True)
 
-    # ================== APP TITLE ==================
     tk.Label(
         root,
         text="Monefy",
@@ -79,7 +176,6 @@ def signin_ui():
         font=title_font
     ).place(relx=0.5, y=3, anchor="n")
 
-    # ================== FEATURES FRAME (LEFT) ==================
     features_frame = tk.Frame(
         root,
         bg="#F8F9FB",
@@ -91,7 +187,6 @@ def signin_ui():
     features_frame.place(x=40, y=80)
     features_frame.pack_propagate(False)
 
-    # Features title
     tk.Label(
         features_frame,
         text="Why Monefy?",
@@ -100,11 +195,10 @@ def signin_ui():
         font=feature_title_font
     ).place(x=20, y=20)
 
-    # Feature list
     features = [
         "• Track your income & expenses",
         "• Simple and clean interface",
-        "• Secure user datas",
+        "• Secure users data",
         "• Open source",
         "• Full offline"
     ]
@@ -121,7 +215,6 @@ def signin_ui():
         ).place(x=20, y=y_pos)
         y_pos += 35
 
-    # ================== LOGIN CARD (RIGHT) ==================
     card = tk.Frame(
         root,
         bg="#F6F6F6",
@@ -133,7 +226,6 @@ def signin_ui():
     card.place(x=520, y=80)
     card.pack_propagate(False)
 
-    # Username
     tk.Label(
         card,
         text="Username",
@@ -151,7 +243,6 @@ def signin_ui():
     )
     username.place(x=20, y=50, width=280, height=35)
 
-    # Password
     tk.Label(
         card,
         text="Password",
@@ -170,7 +261,6 @@ def signin_ui():
     )
     password.place(x=20, y=125, width=280, height=35)
 
-    # Sign In Button
     sign_in = tk.Button(
         card,
         text="Sign In",
@@ -184,17 +274,17 @@ def signin_ui():
     )
     sign_in.place(x=20, y=185, width=280, height=40)
 
-    # Forgot Password
-    tk.Label(
+    forgot_label = tk.Label(
         card,
         text="Forgot password?",
         bg="#F6F6F6",
         fg="#111111",
         font=link_font,
         cursor="hand2"
-    ).place(x=20, y=245)
+    )
+    forgot_label.place(x=20, y=245)
+    forgot_label.bind("<Button-1>", lambda e: forgot_password_ui())
 
-    # ================== 3D SIGN UP BUTTON ==================
     def create_3d_signup_button(parent, x, y, text, command=None):
         width, height = 120, 42
         depth = 4
@@ -250,7 +340,6 @@ def signin_ui():
         root.destroy()
         main.launch_signup()
 
-    # Sign Up Button
     create_3d_signup_button(
         root,
         x=40,
@@ -259,7 +348,4 @@ def signin_ui():
         command=signup_clicked
     )
 
-    # ---------------- Run ----------------
     root.mainloop()
-
-# ---------------- Window ----------------

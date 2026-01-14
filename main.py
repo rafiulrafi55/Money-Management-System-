@@ -8,6 +8,10 @@ folder_name = "Monefy"
 folder_path = os.path.join(appdata_path, folder_name)
 current_user_file = os.path.join(folder_path, "current_user.json")
 
+
+
+
+
 def main():
     if os.path.exists(current_user_file):
         launch_dashboard()

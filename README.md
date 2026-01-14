@@ -193,8 +193,15 @@ We welcome contributions to improve **Monefy**! Whether it’s bug fixes, new fe
 ---
 
 ## 📝 Changelog
+
+### v1.0.1 - 2026-01-15
+- Fixed bug - transactions menu doesn't show expenses after setting budget
+
+
+
 ### v1.0.0 – 2026-01-14
 - Initial release with dashboard, transactions, and analytics.
+
 
 
 ---

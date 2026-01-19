@@ -195,6 +195,13 @@ We welcome contributions to improve **Monefy**! Whether it’s bug fixes, new fe
 
 ## 📝 Changelog
 
+### v1.1.1 - 2026-01-20
+- Leaving budget blank resets budget
+- Transactions cards in recents are editable
+- Search enabled in transactions
+- Added local backup and restore 
+
+
 ### v1.0.1 - 2026-01-15
 - Fixed bug - transactions menu doesn't show expenses after setting budget
 

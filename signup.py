@@ -80,6 +80,9 @@ def signup_ui():
             return
         if not check_duplicate(username.get()):
             return
+        if not agree_var.get():
+            messagebox.showerror("Error", "You must agree to the Privacy Policy to create an account.")
+            return
         try:
             saving_data()
         except Exception as e:
@@ -100,7 +103,7 @@ def signup_ui():
     root = tk.Tk()
     root.title("Create an account")
     window_width = 600
-    window_height = 500
+    window_height = 550
     center_window(root, window_width, window_height)
 
     root.configure(bg="white")
@@ -192,12 +195,122 @@ def signup_ui():
     submit_btn.bind("<Enter>", on_enter)
     submit_btn.bind("<Leave>", on_leave)
 
+    agree_var = tk.IntVar()
+
+
+    agree_frame = tk.Frame(main_frame, bg="white")
+    agree_frame.grid(row=12, column=0, columnspan=2, sticky="w", pady=(10, 0))
+
+
+    agree_check = tk.Checkbutton(
+        agree_frame,
+        variable=agree_var,
+        bg="white",
+        activebackground="white",
+        highlightthickness=0
+    )
+    agree_check.pack(side="left")
+
+
+    agree_label_text = tk.Label(
+        agree_frame,
+        text="I agree to the ",
+        bg="white",
+        fg="#333",
+        font=("Arial", 10)
+    )
+    agree_label_text.pack(side="left")
+
+
+    privacy_link = tk.Label(
+        agree_frame,
+        text="Privacy Policy",
+        fg="blue",
+        cursor="hand2",
+        font=("Arial", 10, "underline"),
+        bg="white"
+    )
+    privacy_link.pack(side="left")
+    privacy_link.bind("<Button-1>", lambda e: show_privacy_policy())
 
     main_frame.columnconfigure(0, weight=1)
     main_frame.columnconfigure(1, weight=1)
 
 
+    def show_privacy_policy():
+        policy_window = tk.Toplevel(root)
+        policy_window.title("Privacy Policy")
+        policy_window.configure(bg="white")
 
+
+        width, height = 600, 500
+        policy_window.update_idletasks()
+        x = (policy_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (policy_window.winfo_screenheight() // 2) - (height // 2)
+        policy_window.geometry(f"{width}x{height}+{x}+{y}")
+
+
+        text_frame = tk.Frame(policy_window, bg="white")
+        text_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        scrollbar = tk.Scrollbar(text_frame)
+        scrollbar.pack(side="right", fill="y")
+
+        policy_text = tk.Text(
+            text_frame,
+            wrap="word",
+            yscrollcommand=scrollbar.set,
+            bg="white",
+            fg="#333",
+            font=("Arial", 10),
+            bd=0,
+            highlightthickness=0
+        )
+        policy_text.pack(fill="both", expand=True)
+        scrollbar.config(command=policy_text.yview)
+
+
+        privacy_policy_content = """
+    Privacy Policy for Monefy
+
+    Effective Date: January 20, 2026
+
+    Monefy (“we”, “our”, or “us”) respects your privacy and is committed to protecting the personal information you share with us. This Privacy Policy explains how we collect, use, and safeguard your information when you use our application.
+
+    1. Information We Collect
+    - Personal Information: When you sign up, we collect your first name, last name, email address, username, and password.
+    - Usage Data: Information about how you use the app, such as transactions added, categories used, or other in-app interactions.
+    - Device Information: Your device type and operating system for app compatibility and troubleshooting.
+
+    2. How We Use Your Information
+    - To provide and improve our services.
+    - To securely store and manage your account information.
+    - To communicate important updates or notifications about your account.
+    - To comply with legal obligations.
+
+    3. Data Security
+    - We use encryption to protect your personal data and passwords.
+    - Your information is stored locally on your device unless otherwise required for backup purposes.
+    - We adopt reasonable security measures to prevent unauthorized access or disclosure.
+
+    4. Data Sharing
+    - We do not sell or share your personal information with third parties for marketing purposes.
+    - We may share your data if required by law or to protect our legal rights.
+
+    5. Your Rights
+    - You have the right to access, update, or delete your personal information stored within the app.
+    - You can contact us at any time regarding your data privacy concerns.
+
+    6. Changes to this Privacy Policy
+    We may update this Privacy Policy from time to time. Any changes will be posted in the app or on our official website.
+
+    7. Contact Us
+    Email: rafiulrafi55@gmail.com
+
+    """
+
+        policy_text.insert("1.0", privacy_policy_content)
+        policy_text.config(state="disabled")
 
     root.mainloop()
 

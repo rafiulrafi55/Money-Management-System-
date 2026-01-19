@@ -78,6 +78,8 @@ def dashboard_ui():
 
 
 
+
+
     def export_transactions_to_excel(recents):
         if not recents:
             messagebox.showwarning("No Data", "No transactions to export.")
@@ -486,6 +488,8 @@ def dashboard_ui():
 
         popup.wait_window()
 
+
+
     def open_report_popup():
         popup = tk.Toplevel(root)
         popup.title("Report a Problem")
@@ -551,6 +555,41 @@ def dashboard_ui():
         cancel_btn.pack()
 
     def open_recents_popup():
+        def create_transaction_card(parent, txn_id, txn):
+            amount = txn["amount"]
+            category = txn.get("category", "Other")
+            desc = txn.get("description", "")
+            dt = txn["datetime"]
+
+            is_income = amount >= 0
+            color = "#10B981" if is_income else "#EF4444"
+            sign = "+" if is_income else "-"
+
+            card = tk.Frame(parent, bg="#F9FAFB", bd=1, relief="solid", padx=10, pady=6, cursor="hand2")
+            card.pack(fill="x", expand=True, pady=6, padx=2)
+
+            # Top: description + category
+            top = tk.Frame(card, bg="#F9FAFB")
+            top.pack(fill="x", padx=10, pady=(6, 2))
+            tk.Label(top, text=f"{desc or 'No description'}  •  {category}", bg="#F9FAFB",
+                     font=("Segoe UI", 11, "bold")).pack(side="left")
+            tk.Label(top, text=f"{sign}{abs(amount):,.2f} BDT", bg="#F9FAFB", fg=color,
+                     font=("Segoe UI", 11, "bold")).pack(side="right")
+
+            # Bottom: datetime + type
+            bottom = tk.Frame(card, bg="#F9FAFB")
+            bottom.pack(fill="x", padx=10, pady=(0, 6))
+            tk.Label(bottom, text=dt, bg="#F9FAFB", fg="#6B7280", font=("Segoe UI", 9)).pack(side="left")
+            tk.Label(bottom, text="Income" if is_income else "Expense", bg="#F9FAFB",
+                     fg="#6B7280", font=("Segoe UI", 9)).pack(side="right")
+
+            # Make the card clickable
+            card.bind("<Button-1>", lambda e: transaction_action_dialog(txn_id))
+            top.bind("<Button-1>", lambda e: transaction_action_dialog(txn_id))
+            bottom.bind("<Button-1>", lambda e: transaction_action_dialog(txn_id))
+
+            return card
+
         popup = tk.Toplevel(root)
         popup.title("All Transactions")
         popup.configure(bg="white")
@@ -617,38 +656,109 @@ def dashboard_ui():
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        def transaction_action_dialog(txn_id):
+            txn = recents[txn_id]
+
+            popup = tk.Toplevel(root)
+            popup.title("Transaction Action")
+            popup.configure(bg="white")
+            popup.transient(root)
+            popup.grab_set()
+            center_popup(popup, 300, 180)
+
+            tk.Label(popup, text=f"Transaction: {txn.get('description', 'No description')}",
+                     font=("Segoe UI", 11, "bold"), bg="white").pack(pady=(15, 10), padx=10)
+
+            def edit_txn():
+                popup.destroy()
+                edit_transaction(txn_id)
+
+            def delete_txn():
+                popup.destroy()
+                delete_transaction(txn_id)
+
+            btn_frame = tk.Frame(popup, bg="white")
+            btn_frame.pack(pady=10, padx=20, fill="x")
+
+            tk.Button(btn_frame, text="Edit", bg="#2563EB", fg="white", font=("Segoe UI", 11, "bold"),
+                      command=edit_txn).pack(side="left", expand=True, fill="x", padx=(0, 5))
+            tk.Button(btn_frame, text="Delete", bg="#EF4444", fg="white", font=("Segoe UI", 11, "bold"),
+                      command=delete_txn).pack(side="right", expand=True, fill="x", padx=(5, 0))
+
+        def edit_transaction(txn_id):
+            txn = recents[txn_id]
+
+            popup = tk.Toplevel(root)
+            popup.title("Edit Transaction")
+            popup.configure(bg="white")
+            center_popup(popup, 400, 350)
+            popup.transient(root)
+            popup.grab_set()
+
+            tk.Label(popup, text="Amount", bg="white", font=("Arial", 11, "bold")).pack(anchor="w", padx=20,
+                                                                                        pady=(15, 0))
+            amount_entry = tk.Entry(popup, font=("Arial", 12))
+            amount_entry.pack(fill="x", padx=20, pady=(0, 10))
+            amount_entry.insert(0, str(abs(txn["amount"])))
+
+            tk.Label(popup, text="Category", bg="white", font=("Arial", 11, "bold")).pack(anchor="w", padx=20)
+            category_var = tk.StringVar(value=txn.get("category", "Other"))
+            category_dropdown = ttk.Combobox(popup, textvariable=category_var, font=("Arial", 11), state="readonly")
+            category_dropdown["values"] = INCOME_CATEGORIES if txn["amount"] >= 0 else EXPENSE_CATEGORIES
+            category_dropdown.pack(fill="x", padx=20, pady=(0, 10))
+
+            tk.Label(popup, text="Description", bg="white", font=("Arial", 11, "bold")).pack(anchor="w", padx=20)
+            desc_entry = tk.Text(popup, font=("Arial", 12), height=4)
+            desc_entry.pack(fill="x", padx=20, pady=(0, 10))
+            desc_entry.insert("1.0", txn.get("description", ""))
+
+            def save_edit():
+                try:
+                    amount = float(amount_entry.get())
+                except ValueError:
+                    messagebox.showerror("Error", "Enter a valid number")
+                    return
+                if amount <= 0:
+                    messagebox.showerror("Error", "Amount must be positive")
+                    return
+                txn["amount"] = amount if txn["amount"] >= 0 else -amount
+                txn["category"] = category_var.get()
+                txn["description"] = desc_entry.get("1.0", "end").strip()
+                saving_data(balance_value, transactions_value, transactions_change_value, recents)
+                render_transactions()
+                render_recent_transactions()
+                render_top_spend()
+                render_analytics()
+                popup.destroy()
+
+            tk.Button(popup, text="Save", bg="#10B981", fg="white", font=("Arial", 11, "bold"),
+                      command=save_edit).pack(side="left", expand=True, padx=20, pady=10)
+            tk.Button(popup, text="Cancel", bg="#EF4444", fg="white", font=("Arial", 11, "bold"),
+                      command=popup.destroy).pack(side="right", expand=True, padx=20, pady=10)
+
+        def delete_transaction(txn_id):
+            if messagebox.askyesno("Delete", "Are you sure you want to delete this transaction?"):
+                txn = recents.pop(txn_id)
+                # Update balances
+                nonlocal balance_value, transactions_value, transactions_change_value
+                amount = txn["amount"]
+                balance_value -= amount
+                transactions_change_value -= amount
+                transactions_value -= 1
+                saving_data(balance_value, transactions_value, transactions_change_value, recents)
+                render_transactions()
+                render_recent_transactions()
+                render_top_spend()
+                render_analytics()
+
         def render_transactions(filtered=None):
             for widget in scroll_frame.winfo_children():
                 widget.destroy()
 
-            txns = filtered if filtered is not None else recents.values()
+            txns = filtered if filtered is not None else recents
 
-            for txn in sorted(txns, key=lambda x: x["datetime"], reverse=True):
-                amount = txn["amount"]
-                category = txn.get("category", "Other")
-                desc = txn.get("description", "")
-                date = txn["datetime"]
-
-                # Card frame with border
-                card = tk.Frame(scroll_frame, bg="#F9FAFB", bd=1, relief="solid", padx=10, pady=6)
-                card.pack(fill="x", padx=10, pady=6)
-
-                # Top: description + category
-                top = tk.Frame(card, bg="#F9FAFB")
-                top.pack(fill="x")
-                tk.Label(top, text=f"{desc or 'No description'} • {category}", bg="#F9FAFB",
-                         font=("Segoe UI", 11, "bold")).pack(side="left", anchor="w")
-                tk.Label(top, text=f"{amount:+,.2f} BDT",
-                         fg="#10B981" if amount >= 0 else "#EF4444",
-                         bg="#F9FAFB",
-                         font=("Segoe UI", 11, "bold")).pack(side="right", anchor="e")
-
-                # Bottom: date + type
-                bottom = tk.Frame(card, bg="#F9FAFB")
-                bottom.pack(fill="x", pady=(4, 0))
-                tk.Label(bottom, text=date, bg="#F9FAFB", fg="#6B7280", font=("Segoe UI", 9)).pack(side="left")
-                tk.Label(bottom, text="Income" if amount >= 0 else "Expense", bg="#F9FAFB",
-                         fg="#10B981" if amount >= 0 else "#EF4444", font=("Segoe UI", 9)).pack(side="right")
+            for txn_id, txn in sorted(txns.items(), key=lambda x: x[1]["datetime"], reverse=True):
+                create_transaction_card(scroll_frame, txn_id, txn)
 
         def filter_transactions(*args):
             query = search_var.get().lower().strip()
@@ -657,17 +767,11 @@ def dashboard_ui():
                 render_transactions()
                 return
 
-            filtered = []
-            for txn in recents.values():
-                text = (
-                    f"{txn.get('description', '')} "
-                    f"{txn.get('category', '')} "
-                    f"{txn['datetime']} "
-                    f"{txn['amount']}"
-                ).lower()
-
+            filtered = {}
+            for txn_id, txn in recents.items():
+                text = f"{txn.get('description', '')} {txn.get('category', '')} {txn['datetime']} {txn['amount']}".lower()
                 if query in text:
-                    filtered.append(txn)
+                    filtered[txn_id] = txn
 
             render_transactions(filtered)
 
@@ -689,61 +793,8 @@ def dashboard_ui():
             reverse=True
         )
 
-        for txn in sorted_txns:
-            amount = txn["amount"]
-            category = txn.get("category", "Other")
-            desc = txn.get("description", "")
-            dt = txn["datetime"]
-
-            is_income = amount >= 0
-            color = "#10B981" if is_income else "#EF4444"
-            sign = "+" if is_income else "-"
-
-            card = tk.Frame(
-                scroll_frame,
-                bg="#F9FAFB",
-                bd=1,
-                relief="solid"
-            )
-            card.pack(fill="x", expand=True, pady=6, padx=2)
-
-
-            top = tk.Frame(card, bg="#F9FAFB")
-            top.pack(fill="x", padx=10, pady=(6, 2))
-
-            tk.Label(
-                top,
-                text=f"{desc or 'No description'}  •  {category}",
-                bg="#F9FAFB",
-                font=("Segoe UI", 11, "bold")
-            ).pack(side="left")
-
-            tk.Label(
-                top,
-                text=f"{sign}{abs(amount):,.2f} BDT",
-                bg="#F9FAFB",
-                fg=color,
-                font=("Segoe UI", 11, "bold")
-            ).pack(side="right")
-
-            bottom = tk.Frame(card, bg="#F9FAFB")
-            bottom.pack(fill="x", padx=10, pady=(0, 6))
-
-            tk.Label(
-                bottom,
-                text=dt,
-                bg="#F9FAFB",
-                fg="#6B7280",
-                font=("Segoe UI", 9)
-            ).pack(side="left")
-
-            tk.Label(
-                bottom,
-                text="Income" if is_income else "Expense",
-                bg="#F9FAFB",
-                fg="#6B7280",
-                font=("Segoe UI", 9)
-            ).pack(side="right")
+        for txn_id, txn in sorted(recents.items(), key=lambda x: x[1]["datetime"], reverse=True):
+            create_transaction_card(scroll_frame, txn_id, txn)
 
         # Add extra bottom padding so the last transaction is not hidden behind the export button
         spacer = tk.Frame(scroll_frame, height=80, bg="white")
@@ -795,11 +846,20 @@ def dashboard_ui():
             try:
                 amount = float(budget_entry.get())
             except ValueError:
-                messagebox.showerror("Error", "Enter a valid number")
+                if messagebox.askyesno("Reset Budget", "Are you sure you want to reset your budget?"):
+                    remaining_var.set("Budget not set")
+                    budget_value = None
+                    remaining_budget = None
+                    check_budget_warning()
+                    popup.destroy()
+            try:
+                if amount <= 0:
+                    messagebox.showerror("Error", "Budget must be positive")
+                    return
+            except UnboundLocalError:
                 return
-            if amount <= 0:
-                messagebox.showerror("Error", "Budget must be positive")
-                return
+
+
 
             budget_value = amount
             remaining_budget = amount
@@ -820,7 +880,7 @@ def dashboard_ui():
 
     def add_money_popup(is_add=True):
         popup_width = 500
-        popup_height = 500
+        popup_height = 450
         popup = tk.Toplevel()
         popup.title("Add Money" if is_add else "Remove Money")
         popup.configure(bg="white")
@@ -956,6 +1016,70 @@ def dashboard_ui():
         )
         submit_btn.pack(side="right")
 
+    def backup_current_user():
+        try:
+            with open(user_data_file, "r") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            messagebox.showwarning("Backup Failed", "No user data found to backup.")
+            return
+
+        if username not in data:
+            messagebox.showwarning("Backup Failed", "No data found for the current user.")
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON Files", "*.json")],
+            title="Backup Current User Data"
+        )
+
+        if file_path:
+            try:
+                with open(file_path, "w") as f:
+                    json.dump({username: data[username]}, f, indent=4)
+                messagebox.showinfo("Backup Successful", f"Backup saved to:\n{file_path}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to backup data:\n{e}")
+
+    def restore_current_user():
+        file_path = filedialog.askopenfilename(
+            defaultextension=".json",
+            filetypes=[("JSON Files", "*.json")],
+            title="Select Backup to Restore"
+        )
+
+        if file_path:
+            if messagebox.askyesno("Confirm Restore", "Restoring will overwrite your current data. Continue?"):
+                try:
+                    with open(file_path, "r") as f:
+                        backup_data = json.load(f)
+
+                    if username not in backup_data:
+                        messagebox.showerror("Error", "This backup does not contain your user data.")
+                        return
+
+                    # Load all user data
+                    if os.path.exists(user_data_file):
+                        with open(user_data_file, "r") as f:
+                            all_data = json.load(f)
+                    else:
+                        all_data = {}
+
+                    # Replace current user data with backup
+                    all_data[username] = backup_data[username]
+
+                    with open(user_data_file, "w") as f:
+                        json.dump(all_data, f, indent=4)
+
+                    messagebox.showinfo("Restore Successful", "Your data has been restored!")
+                    # Optional: refresh dashboard
+                    root.destroy()
+                    dashboard_ui()
+
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to restore data:\n{e}")
+
     def open_settings():
         popup = tk.Toplevel(root)
         popup.title("Settings")
@@ -1013,6 +1137,42 @@ def dashboard_ui():
 
         current_warning = getattr(root, "budget_warning_limit", 500)
         warning_entry.insert(0, str(current_warning))
+
+        # Inside open_settings(), after tab1 and tab2:
+
+        tab3 = tk.Frame(notebook, bg="white")
+        notebook.add(tab3, text="Backup/Restore")
+
+        tk.Label(tab3, text="Backup and Restore Your Data", font=("Segoe UI", 12, "bold"), bg="white").pack(
+            pady=(15, 10))
+
+        backup_btn = tk.Button(
+            tab3,
+            text="Backup Data",
+            bg="#10B981",
+            fg="white",
+            font=("Segoe UI", 11, "bold"),
+            cursor="hand2",
+            relief="flat",
+            padx=10,
+            pady=6,
+            command=backup_current_user  # function from previous code
+        )
+        backup_btn.pack(fill="x", padx=30, pady=(0, 15))
+
+        restore_btn = tk.Button(
+            tab3,
+            text="Restore Data",
+            bg="#2563EB",
+            fg="white",
+            font=("Segoe UI", 11, "bold"),
+            cursor="hand2",
+            relief="flat",
+            padx=10,
+            pady=6,
+            command=restore_current_user  # function from previous code
+        )
+        restore_btn.pack(fill="x", padx=30, pady=(0, 15))
 
         def save_settings():
             nonlocal first_entry, last_entry, email_entry, password_entry, confirm_entry, warning_entry

@@ -17,6 +17,38 @@ import sys
 from tkinter import filedialog, messagebox
 from openpyxl import Workbook
 
+import smtplib
+from email.message import EmailMessage
+
+# Configure your SMTP
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 465
+SMTP_USER = "rafiulrafi55@gmail.com"          # Your email
+SMTP_PASS = "zlbp jhwo qttq pbwg"       # App password if using Gmail
+
+def send_report_email(subject, description, attachment_path=None):
+    try:
+        msg = EmailMessage()
+        msg['Subject'] = f"[Monefy Issue] {subject}"
+        msg['From'] = SMTP_USER
+        msg['To'] = SMTP_USER  # You send to yourself
+        msg.set_content(description)
+
+        if attachment_path and os.path.exists(attachment_path):
+            with open(attachment_path, 'rb') as f:
+                file_data = f.read()
+                file_name = os.path.basename(attachment_path)
+            msg.add_attachment(file_data, maintype='application', subtype='octet-stream', filename=file_name)
+
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
+            smtp.login(SMTP_USER, SMTP_PASS)
+            smtp.send_message(msg)
+        return True
+    except Exception as e:
+        print("Error sending report:", e)
+        return False
+
+
 
 
 
@@ -35,7 +67,14 @@ users_path = os.path.join(folder_path, "users.json")
 user_data_file = os.path.join(folder_path, "user_data.json")
 
 def dashboard_ui():
+    EXPENSE_CATEGORIES = [
+        "Food", "Rent", "Transport", "Utilities",
+        "Entertainment", "Subscription", "Health", "Other"
+    ]
 
+    INCOME_CATEGORIES = [
+        "Salary", "Freelance", "Business", "Gift", "Other"
+    ]
 
 
 
@@ -57,13 +96,14 @@ def dashboard_ui():
         ws = wb.active
         ws.title = "Transactions"
 
-        ws.append(["Date", "Description", "Type", "Amount"])
+        ws.append(["Date", "Category", "Description", "Type", "Amount"])
 
         for txn in sorted(recents.values(), key=lambda x: x["datetime"]):
             amount = txn["amount"]
             ws.append([
                 txn["datetime"],
-                txn["description"],
+                txn.get("category", "Uncategorized"),
+                txn.get("description", ""),
                 "Income" if amount >= 0 else "Expense",
                 amount
             ])
@@ -162,8 +202,12 @@ def dashboard_ui():
                 transactions_value = int(user_data.get("transactions_value", 0))
                 transactions_change_value = float(user_data.get("transactions_change_value", 0))
                 recents = user_data.get("recents", {})
+                for txn in recents.values():
+                    if "category" not in txn:
+                        txn["category"] = "Other"
                 budget_value = user_data.get("budget_value", None)
                 remaining_budget = user_data.get("remaining_budget", None)
+
 
 
 
@@ -239,6 +283,8 @@ def dashboard_ui():
 
 
 
+
+
     def center_popup(popup, width, height):
         popup.update_idletasks()
         x = (popup.winfo_screenwidth() // 2) - (width // 2)
@@ -276,7 +322,10 @@ def dashboard_ui():
 
         highest = min(expenses, key=lambda x: x["amount"])
         amount = abs(highest["amount"])
-        description = highest["description"]
+        if {highest.get("description")} == {""}:
+            description = f'{highest.get("category", "Other")} - No description'
+        else:
+            description = f'{highest.get("category", "Other")} - {highest.get("description", "")}'
         date_time = highest["datetime"]
 
         tk.Label(top_spend_card, text=f"{amount:,.2f} BDT", bg="white", fg="#EF4444", font=CARD_VALUE).pack(anchor="w", padx=15, pady=(5, 0))
@@ -437,6 +486,70 @@ def dashboard_ui():
 
         popup.wait_window()
 
+    def open_report_popup():
+        popup = tk.Toplevel(root)
+        popup.title("Report a Problem")
+        popup.configure(bg="white")
+        popup.transient(root)
+        popup.grab_set()
+        center_popup(popup, 450, 500)
+
+        container = tk.Frame(popup, bg="white", padx=20, pady=20)
+        container.pack(fill="both", expand=True)
+
+        tk.Label(container, text="Subject", bg="white", fg="#333", font=("Arial", 11, "bold")).pack(anchor="w")
+        subject_entry = tk.Entry(container, font=("Arial", 12))
+        subject_entry.pack(fill="x", pady=(0, 10))
+
+        tk.Label(container, text="Description", bg="white", fg="#333", font=("Arial", 11, "bold")).pack(anchor="w")
+        desc_text = tk.Text(container, font=("Arial", 12), height=8, relief="solid", highlightthickness=1)
+        desc_text.pack(fill="both", pady=(0, 10))
+
+        # Optional: attachment
+        attachment_path_var = tk.StringVar()
+
+        def browse_file():
+            path = filedialog.askopenfilename()
+            if path:
+                attachment_path_var.set(path)
+
+        attach_frame = tk.Frame(container, bg="white")
+        attach_frame.pack(fill="x", pady=(0, 10))
+        tk.Button(attach_frame, text="Attach File", command=browse_file, bg="#6366F1", fg="white").pack(side="left")
+        tk.Label(attach_frame, textvariable=attachment_path_var, bg="white", fg="#6B7280").pack(side="left", padx=10)
+
+        btn_frame = tk.Frame(container, bg="white")
+        btn_frame.pack(fill="x", pady=(10, 0))
+
+        def submit_report():
+            subject = subject_entry.get().strip()
+            description = desc_text.get("1.0", "end").strip()
+
+            if not subject or not description:
+                messagebox.showerror("Error", "Please fill in both subject and description")
+                return
+
+            # Optional: handle attachment
+            attachment = None
+            if attachment_path_var.get():
+                attachment = attachment_path_var.get()
+
+            success = send_report_email(subject, description, attachment)
+
+            if success:
+                messagebox.showinfo("Report Sent", "Your report has been sent successfully!")
+                popup.destroy()
+            else:
+                messagebox.showerror("Error", "Failed to send report. Check your internet connection or SMTP settings.")
+
+        submit_btn = tk.Button(container, text="Submit", bg="#10B981", fg="white", font=("Arial", 11, "bold"),
+                               command=submit_report)
+        submit_btn.pack(pady=(0, 5))
+
+        cancel_btn = tk.Button(container, text="Cancel", bg="#EF4444", fg="white", font=("Arial", 11, "bold"),
+                               command=popup.destroy)
+        cancel_btn.pack()
+
     def open_recents_popup():
         popup = tk.Toplevel(root)
         popup.title("All Transactions")
@@ -457,6 +570,28 @@ def dashboard_ui():
             font=("Segoe UI", 16, "bold"),
             bg="white"
         ).pack(pady=(15, 10))
+        search_var = tk.StringVar()
+
+        search_frame = tk.Frame(popup, bg="white")
+        search_frame.pack(fill="x", padx=20, pady=(0, 10))
+
+        tk.Label(
+            search_frame,
+            text="Search",
+            bg="white",
+            fg="#555",
+            font=("Segoe UI", 10, "bold")
+        ).pack(anchor="w")
+
+        search_entry = tk.Entry(
+            search_frame,
+            textvariable=search_var,
+            font=("Segoe UI", 11),
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground="#DADADA"
+        )
+        search_entry.pack(fill="x", ipady=6)
 
         container = tk.Frame(popup, bg="white")
         container.pack(fill="both", expand=True, padx=15, pady=10)
@@ -482,6 +617,62 @@ def dashboard_ui():
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        def render_transactions(filtered=None):
+            for widget in scroll_frame.winfo_children():
+                widget.destroy()
+
+            txns = filtered if filtered is not None else recents.values()
+
+            for txn in sorted(txns, key=lambda x: x["datetime"], reverse=True):
+                amount = txn["amount"]
+                category = txn.get("category", "Other")
+                desc = txn.get("description", "")
+                date = txn["datetime"]
+
+                # Card frame with border
+                card = tk.Frame(scroll_frame, bg="#F9FAFB", bd=1, relief="solid", padx=10, pady=6)
+                card.pack(fill="x", padx=10, pady=6)
+
+                # Top: description + category
+                top = tk.Frame(card, bg="#F9FAFB")
+                top.pack(fill="x")
+                tk.Label(top, text=f"{desc or 'No description'} • {category}", bg="#F9FAFB",
+                         font=("Segoe UI", 11, "bold")).pack(side="left", anchor="w")
+                tk.Label(top, text=f"{amount:+,.2f} BDT",
+                         fg="#10B981" if amount >= 0 else "#EF4444",
+                         bg="#F9FAFB",
+                         font=("Segoe UI", 11, "bold")).pack(side="right", anchor="e")
+
+                # Bottom: date + type
+                bottom = tk.Frame(card, bg="#F9FAFB")
+                bottom.pack(fill="x", pady=(4, 0))
+                tk.Label(bottom, text=date, bg="#F9FAFB", fg="#6B7280", font=("Segoe UI", 9)).pack(side="left")
+                tk.Label(bottom, text="Income" if amount >= 0 else "Expense", bg="#F9FAFB",
+                         fg="#10B981" if amount >= 0 else "#EF4444", font=("Segoe UI", 9)).pack(side="right")
+
+        def filter_transactions(*args):
+            query = search_var.get().lower().strip()
+
+            if not query:
+                render_transactions()
+                return
+
+            filtered = []
+            for txn in recents.values():
+                text = (
+                    f"{txn.get('description', '')} "
+                    f"{txn.get('category', '')} "
+                    f"{txn['datetime']} "
+                    f"{txn['amount']}"
+                ).lower()
+
+                if query in text:
+                    filtered.append(txn)
+
+            render_transactions(filtered)
+
+        search_var.trace_add("write", filter_transactions)
+
         if not recents:
             tk.Label(
                 scroll_frame,
@@ -500,7 +691,8 @@ def dashboard_ui():
 
         for txn in sorted_txns:
             amount = txn["amount"]
-            desc = txn["description"]
+            category = txn.get("category", "Other")
+            desc = txn.get("description", "")
             dt = txn["datetime"]
 
             is_income = amount >= 0
@@ -521,7 +713,7 @@ def dashboard_ui():
 
             tk.Label(
                 top,
-                text=desc or "No description",
+                text=f"{desc or 'No description'}  •  {category}",
                 bg="#F9FAFB",
                 font=("Segoe UI", 11, "bold")
             ).pack(side="left")
@@ -552,6 +744,10 @@ def dashboard_ui():
                 fg="#6B7280",
                 font=("Segoe UI", 9)
             ).pack(side="right")
+
+        # Add extra bottom padding so the last transaction is not hidden behind the export button
+        spacer = tk.Frame(scroll_frame, height=80, bg="white")
+        spacer.pack(fill="x")
 
         export_btn = tk.Button(
             popup,
@@ -624,7 +820,7 @@ def dashboard_ui():
 
     def add_money_popup(is_add=True):
         popup_width = 500
-        popup_height = 350
+        popup_height = 500
         popup = tk.Toplevel()
         popup.title("Add Money" if is_add else "Remove Money")
         popup.configure(bg="white")
@@ -635,14 +831,42 @@ def dashboard_ui():
 
         container = tk.Frame(popup, bg="white", padx=30, pady=30)
         container.pack(fill="both", expand=True)
+        container.columnconfigure(0, weight=1)
 
         tk.Label(container, text="Amount", bg="white", fg="#333333", font=("Arial",11,"bold")).grid(row=0,column=0,sticky="w", pady=(0,5))
         amount_entry = tk.Entry(container, font=("Arial",12), relief="flat", highlightthickness=1, highlightbackground="#D3D3D3")
         amount_entry.grid(row=1,column=0,sticky="ew", pady=(0,15))
 
-        tk.Label(container, text="Description", bg="white", fg="#333333", font=("Arial",11,"bold")).grid(row=2,column=0,sticky="w", pady=(0,5))
-        desc_entry = tk.Text(container, font=("Arial",12), height=5, relief="flat", highlightthickness=1, highlightbackground="#D3D3D3")
-        desc_entry.grid(row=3,column=0,sticky="ew", pady=(0,20))
+        # Category label
+        tk.Label(
+            container,
+            text="Category",
+            bg="white",
+            fg="#333333",
+            font=("Arial", 11, "bold")
+        ).grid(row=2, column=0, sticky="w", pady=(0, 5))
+
+        category_var = tk.StringVar()
+
+        category_dropdown = ttk.Combobox(
+            container,
+            textvariable=category_var,
+            state="readonly",
+            font=("Arial", 11)
+        )
+
+        # Set categories based on add/remove
+        category_dropdown["values"] = INCOME_CATEGORIES if is_add else EXPENSE_CATEGORIES
+        category_dropdown.current(0)
+        category_dropdown.grid(row=3, column=0, sticky="ew", pady=(0, 15))
+
+        tk.Label(container, text="Description", bg="white", fg="#333333",
+                 font=("Arial", 11, "bold")).grid(row=4, column=0, sticky="w", pady=(0, 5))
+
+        desc_entry = tk.Text(container, font=("Arial", 12), height=5,
+                             relief="flat", highlightthickness=1,
+                             highlightbackground="#D3D3D3")
+        desc_entry.grid(row=5, column=0, sticky="ew", pady=(0, 20))
 
         def limit_desc_length(event):
             content = desc_entry.get("1.0","end-1c")
@@ -660,6 +884,10 @@ def dashboard_ui():
                 return
             if amount<=0:
                 messagebox.showerror("Error","Amount must be positive")
+                return
+
+            if not category_var.get():
+                messagebox.showerror("Error", "Please select a category")
                 return
 
             if not is_add:
@@ -680,7 +908,8 @@ def dashboard_ui():
             txn_id = f"txn_{int(datetime.now().timestamp())}"
             recents[txn_id] = {
                 "amount": amount if is_add else -amount,
-                "description": desc_entry.get("1.0","end").strip(),
+                "category": category_var.get(),
+                "description": desc_entry.get("1.0", "end").strip(),
                 "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
@@ -697,11 +926,35 @@ def dashboard_ui():
 
             popup.destroy()
 
-        btn_frame = tk.Frame(container,bg="white")
-        btn_frame.grid(row=4,column=0,sticky="ew")
-        tk.Button(btn_frame,text="Submit",bg="#333333",fg="white",font=("Arial",12,"bold"),width=10,pady=10,relief="raised",cursor="hand2",command=submit_amount).pack(side="left",expand=True,padx=10)
-        tk.Button(btn_frame,text="Cancel",bg="#EE2D24",fg="white",font=("Arial",12,"bold"),width=10,pady=10,relief="raised",cursor="hand2",command=popup.destroy).pack(side="right",expand=True,padx=10)
-        container.columnconfigure(0,weight=1)
+        # Buttons frame
+        button_frame = tk.Frame(container, bg="white")
+        button_frame.grid(row=6, column=0, pady=(10, 0), sticky="e")
+
+        cancel_btn = tk.Button(
+            button_frame,
+            text="Cancel",
+            command=popup.destroy,
+            bg="#E0E0E0",
+            fg="#333",
+            font=("Arial", 10, "bold"),
+            relief="flat",
+            padx=15,
+            pady=6
+        )
+        cancel_btn.pack(side="right", padx=(5, 0))
+
+        submit_btn = tk.Button(
+            button_frame,
+            text="Add" if is_add else "Remove",
+            command=submit_amount,
+            bg="#4CAF50" if is_add else "#E53935",
+            fg="white",
+            font=("Arial", 10, "bold"),
+            relief="flat",
+            padx=15,
+            pady=6
+        )
+        submit_btn.pack(side="right")
 
     def open_settings():
         popup = tk.Toplevel(root)
@@ -817,6 +1070,31 @@ def dashboard_ui():
         save_btn = tk.Button(popup, text="Save Changes", bg="#111827", fg="white",
                              font=("Segoe UI", 11, "bold"), command=save_settings)
         save_btn.pack(fill="x", padx=15, pady=(0, 15))
+
+        # Interactive "Report a Problem" label
+        def open_report_from_settings(event=None):
+            open_report_popup()  # calls the report popup function
+
+        report_label = tk.Label(
+            popup,
+            text="Report a Problem",
+            fg="#2563EB",  # blue text
+            bg="white",
+            font=("Segoe UI", 10, "underline"),
+            cursor="hand2"
+        )
+        report_label.place(relx=1.0, rely=1.0, x=-30, y=-80, anchor="se")  # bottom-right corner
+
+        # Hover effect
+        def on_enter(e):
+            report_label.config(fg="#1D4ED8")  # darker blue on hover
+
+        def on_leave(e):
+            report_label.config(fg="#2563EB")  # original color
+
+        report_label.bind("<Enter>", on_enter)
+        report_label.bind("<Leave>", on_leave)
+        report_label.bind("<Button-1>", open_report_from_settings)
 
     buttons = [
         ("Add Money", "#10B981", lambda:add_money_popup(True)),

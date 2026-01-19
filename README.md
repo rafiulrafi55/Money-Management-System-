@@ -94,7 +94,10 @@ Monefy is a **desktop-based money management system** built using **Python and T
 ---
 
 ### 🚀 Future Enhancements
-- Budget planning and alerts
+- ~~Budget planning and alerts~~
+- ~~User report section~~
+- ~~Category-wise spending insights~~
+- ~~Search transactions by name or notes~~
 - Recurring transactions
 - Advanced analytics
 - Cloud sync support
@@ -104,11 +107,9 @@ Monefy is a **desktop-based money management system** built using **Python and T
 - Add and view other accounts of family members or others
 - Theme customization
 - Local backup and restore system
-- Search transactions by name or notes
 - Filter by category
 - Filter by date range
 - Filter by income or expense type
-- Category-wise spending insights
 - Date-range based filtering
 - Monthly expense charts
 - Edit existing transactions

@@ -9,20 +9,20 @@ folder_name = "Monefy"
 folder_path = os.path.join(appdata_path, folder_name)
 os.makedirs(folder_path, exist_ok=True)
 users_file_path = os.path.join(folder_path, "users.json")
+import sys
 
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
 
+    return os.path.join(base_path, relative_path)
+icon = resource_path("app_icon.ico")
 
 
 def signup_ui():
-    entries = []
-    def create_entry():
-        entries.append(first_name.get())
-        entries.append(last_name.get())
-        entries.append(email.get())
-        entries.append(password.get())
-        entries.append(confirm_pw.get())
-        entries.append(username.get())
 
     def check_entries():
         if not all([first_name.get(), last_name.get(), email.get(), username.get(), password.get(), confirm_pw.get()]):
@@ -107,6 +107,8 @@ def signup_ui():
     center_window(root, window_width, window_height)
 
     root.configure(bg="white")
+
+    root.iconbitmap(icon)
 
 
 
@@ -241,6 +243,7 @@ def signup_ui():
         policy_window = tk.Toplevel(root)
         policy_window.title("Privacy Policy")
         policy_window.configure(bg="white")
+        policy_window.iconbitmap(icon)
 
 
         width, height = 600, 500

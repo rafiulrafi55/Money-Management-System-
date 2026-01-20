@@ -4,6 +4,16 @@ import main
 import os
 from security_utils import decrypt_json,verify_password,encrypt_json,hash_password
 import json
+import sys
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+icon = resource_path("app_icon.ico")
 
 
 def signin_ui():
@@ -12,6 +22,7 @@ def signin_ui():
         fp_window.title("Reset Password")
         fp_window.geometry("350x360")
         fp_window.configure(bg="#F4F6F8")
+        fp_window.iconbitmap(icon)
         fp_window.resizable(False, False)
         win_width = 350
         win_height = 360
@@ -140,6 +151,7 @@ def signin_ui():
     root.configure(bg="#F4F6F8")
     root.resizable(False, False)
     root.title("Login")
+    root.iconbitmap(icon)
 
     win_width = 900
     win_height = 500

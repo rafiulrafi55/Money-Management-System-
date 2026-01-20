@@ -20,18 +20,18 @@ from openpyxl import Workbook
 import smtplib
 from email.message import EmailMessage
 
-# Configure your SMTP
+
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
-SMTP_USER = "rafiulrafi55@gmail.com"          # Your email
-SMTP_PASS = "zlbp jhwo qttq pbwg"       # App password if using Gmail
+SMTP_USER = "rafiulrafi55@gmail.com"
+SMTP_PASS = "zlbp jhwo qttq pbwg"
 
 def send_report_email(subject, description, attachment_path=None):
     try:
         msg = EmailMessage()
         msg['Subject'] = f"[Monefy Issue] {subject}"
         msg['From'] = SMTP_USER
-        msg['To'] = SMTP_USER  # You send to yourself
+        msg['To'] = SMTP_USER
         msg.set_content(description)
 
         if attachment_path and os.path.exists(attachment_path):
@@ -49,9 +49,15 @@ def send_report_email(subject, description, attachment_path=None):
         return False
 
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
 
+    return os.path.join(base_path, relative_path)
 
-
+icon = resource_path("app_icon.ico")
 
 
 try:
@@ -256,11 +262,11 @@ def dashboard_ui():
     def update_remaining_budget(amount, is_add=False):
         nonlocal remaining_budget
         if remaining_budget is None:
-            return  # no budget set yet
+            return
         if not is_add:
-            remaining_budget -= amount  # subtract expense
+            remaining_budget -= amount
         else:
-            remaining_budget += amount  # optional if you want income to restore budget
+            remaining_budget += amount
         remaining_var.set(get_remaining_budget())
         check_budget_warning()
 
@@ -269,7 +275,7 @@ def dashboard_ui():
 
     def check_budget_warning():
         nonlocal remaining_budget, budget_warning_var
-        threshold = getattr(root, "budget_warning_limit", 500)  # default 500 BDT
+        threshold = getattr(root, "budget_warning_limit", 500)
         if remaining_budget is not None and remaining_budget <= threshold:
             budget_warning_var.set(f"⚠ Remaining budget is low!")
         else:
@@ -377,6 +383,8 @@ def dashboard_ui():
     else:
         root.budget_warning_limit = 500
 
+    root.iconbitmap(icon)
+
 
 
 
@@ -434,6 +442,7 @@ def dashboard_ui():
         popup.title("Welcome")
         popup.configure(bg="white")
         popup.resizable(False, False)
+        popup.iconbitmap(icon)
 
 
         popup_width, popup_height = 400, 300
@@ -497,6 +506,7 @@ def dashboard_ui():
         popup.transient(root)
         popup.grab_set()
         center_popup(popup, 450, 500)
+        popup.iconbitmap(icon)
 
         container = tk.Frame(popup, bg="white", padx=20, pady=20)
         container.pack(fill="both", expand=True)
@@ -509,7 +519,7 @@ def dashboard_ui():
         desc_text = tk.Text(container, font=("Arial", 12), height=8, relief="solid", highlightthickness=1)
         desc_text.pack(fill="both", pady=(0, 10))
 
-        # Optional: attachment
+
         attachment_path_var = tk.StringVar()
 
         def browse_file():
@@ -533,7 +543,7 @@ def dashboard_ui():
                 messagebox.showerror("Error", "Please fill in both subject and description")
                 return
 
-            # Optional: handle attachment
+
             attachment = None
             if attachment_path_var.get():
                 attachment = attachment_path_var.get()
@@ -568,7 +578,7 @@ def dashboard_ui():
             card = tk.Frame(parent, bg="#F9FAFB", bd=1, relief="solid", padx=10, pady=6, cursor="hand2")
             card.pack(fill="x", expand=True, pady=6, padx=2)
 
-            # Top: description + category
+
             top = tk.Frame(card, bg="#F9FAFB")
             top.pack(fill="x", padx=10, pady=(6, 2))
             tk.Label(top, text=f"{desc or 'No description'}  •  {category}", bg="#F9FAFB",
@@ -576,14 +586,14 @@ def dashboard_ui():
             tk.Label(top, text=f"{sign}{abs(amount):,.2f} BDT", bg="#F9FAFB", fg=color,
                      font=("Segoe UI", 11, "bold")).pack(side="right")
 
-            # Bottom: datetime + type
+
             bottom = tk.Frame(card, bg="#F9FAFB")
             bottom.pack(fill="x", padx=10, pady=(0, 6))
             tk.Label(bottom, text=dt, bg="#F9FAFB", fg="#6B7280", font=("Segoe UI", 9)).pack(side="left")
             tk.Label(bottom, text="Income" if is_income else "Expense", bg="#F9FAFB",
                      fg="#6B7280", font=("Segoe UI", 9)).pack(side="right")
 
-            # Make the card clickable
+
             card.bind("<Button-1>", lambda e: transaction_action_dialog(txn_id))
             top.bind("<Button-1>", lambda e: transaction_action_dialog(txn_id))
             bottom.bind("<Button-1>", lambda e: transaction_action_dialog(txn_id))
@@ -595,6 +605,7 @@ def dashboard_ui():
         popup.configure(bg="white")
         popup.transient(root)
         popup.grab_set()
+        popup.iconbitmap(icon)
 
 
         width, height = 520, 500
@@ -665,6 +676,7 @@ def dashboard_ui():
             popup.transient(root)
             popup.grab_set()
             center_popup(popup, 300, 180)
+            popup.iconbitmap(icon)
 
             tk.Label(popup, text=f"Transaction: {txn.get('description', 'No description')}",
                      font=("Segoe UI", 11, "bold"), bg="white").pack(pady=(15, 10), padx=10)
@@ -694,6 +706,7 @@ def dashboard_ui():
             center_popup(popup, 400, 350)
             popup.transient(root)
             popup.grab_set()
+            popup.iconbitmap(icon)
 
             tk.Label(popup, text="Amount", bg="white", font=("Arial", 11, "bold")).pack(anchor="w", padx=20,
                                                                                         pady=(15, 0))
@@ -739,7 +752,7 @@ def dashboard_ui():
         def delete_transaction(txn_id):
             if messagebox.askyesno("Delete", "Are you sure you want to delete this transaction?"):
                 txn = recents.pop(txn_id)
-                # Update balances
+
                 nonlocal balance_value, transactions_value, transactions_change_value
                 amount = txn["amount"]
                 balance_value -= amount
@@ -796,7 +809,7 @@ def dashboard_ui():
         for txn_id, txn in sorted(recents.items(), key=lambda x: x[1]["datetime"], reverse=True):
             create_transaction_card(scroll_frame, txn_id, txn)
 
-        # Add extra bottom padding so the last transaction is not hidden behind the export button
+
         spacer = tk.Frame(scroll_frame, height=80, bg="white")
         spacer.pack(fill="x")
 
@@ -832,6 +845,7 @@ def dashboard_ui():
         popup.transient(root)
         popup.grab_set()
         center_popup(popup, 400, 200)
+        popup.iconbitmap(icon)
 
 
         container = tk.Frame(popup, bg="white", padx=30, pady=30)
@@ -887,6 +901,7 @@ def dashboard_ui():
         popup.transient(root)
         popup.grab_set()
         center_popup(popup, popup_width, popup_height)
+        popup.iconbitmap(icon)
 
 
         container = tk.Frame(popup, bg="white", padx=30, pady=30)
@@ -915,7 +930,7 @@ def dashboard_ui():
             font=("Arial", 11)
         )
 
-        # Set categories based on add/remove
+
         category_dropdown["values"] = INCOME_CATEGORIES if is_add else EXPENSE_CATEGORIES
         category_dropdown.current(0)
         category_dropdown.grid(row=3, column=0, sticky="ew", pady=(0, 15))
@@ -986,7 +1001,7 @@ def dashboard_ui():
 
             popup.destroy()
 
-        # Buttons frame
+
         button_frame = tk.Frame(container, bg="white")
         button_frame.grid(row=6, column=0, pady=(10, 0), sticky="e")
 
@@ -1059,21 +1074,21 @@ def dashboard_ui():
                         messagebox.showerror("Error", "This backup does not contain your user data.")
                         return
 
-                    # Load all user data
+
                     if os.path.exists(user_data_file):
                         with open(user_data_file, "r") as f:
                             all_data = json.load(f)
                     else:
                         all_data = {}
 
-                    # Replace current user data with backup
+
                     all_data[username] = backup_data[username]
 
                     with open(user_data_file, "w") as f:
                         json.dump(all_data, f, indent=4)
 
                     messagebox.showinfo("Restore Successful", "Your data has been restored!")
-                    # Optional: refresh dashboard
+
                     root.destroy()
                     dashboard_ui()
 
@@ -1086,6 +1101,7 @@ def dashboard_ui():
         popup.configure(bg="white")
         popup.transient(root)
         popup.grab_set()
+        popup.iconbitmap(icon)
 
 
         width, height = 450, 600
@@ -1138,7 +1154,7 @@ def dashboard_ui():
         current_warning = getattr(root, "budget_warning_limit", 500)
         warning_entry.insert(0, str(current_warning))
 
-        # Inside open_settings(), after tab1 and tab2:
+
 
         tab3 = tk.Frame(notebook, bg="white")
         notebook.add(tab3, text="Backup/Restore")
@@ -1156,7 +1172,7 @@ def dashboard_ui():
             relief="flat",
             padx=10,
             pady=6,
-            command=backup_current_user  # function from previous code
+            command=backup_current_user
         )
         backup_btn.pack(fill="x", padx=30, pady=(0, 15))
 
@@ -1170,7 +1186,7 @@ def dashboard_ui():
             relief="flat",
             padx=10,
             pady=6,
-            command=restore_current_user  # function from previous code
+            command=restore_current_user
         )
         restore_btn.pack(fill="x", padx=30, pady=(0, 15))
 
@@ -1231,9 +1247,9 @@ def dashboard_ui():
                              font=("Segoe UI", 11, "bold"), command=save_settings)
         save_btn.pack(fill="x", padx=15, pady=(0, 15))
 
-        # Interactive "Report a Problem" label
+
         def open_report_from_settings(event=None):
-            open_report_popup()  # calls the report popup function
+            open_report_popup()
 
         report_label = tk.Label(
             popup,
@@ -1243,14 +1259,14 @@ def dashboard_ui():
             font=("Segoe UI", 10, "underline"),
             cursor="hand2"
         )
-        report_label.place(relx=1.0, rely=1.0, x=-30, y=-80, anchor="se")  # bottom-right corner
+        report_label.place(relx=1.0, rely=1.0, x=-30, y=-80, anchor="se")
 
-        # Hover effect
+
         def on_enter(e):
-            report_label.config(fg="#1D4ED8")  # darker blue on hover
+            report_label.config(fg="#1D4ED8")
 
         def on_leave(e):
-            report_label.config(fg="#2563EB")  # original color
+            report_label.config(fg="#2563EB")
 
         report_label.bind("<Enter>", on_enter)
         report_label.bind("<Leave>", on_leave)
